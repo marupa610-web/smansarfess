@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Control Panel — SMANSARFESS 🔐</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="logo">ADMIN PANEL 🔐</div>
+    <ul class="nav-links">
+      <li><a href="index.html">Lihat Web</a></li>
+      <li><button onclick="logout()" style="background:none; border:none; cursor:pointer; font-weight:600; color:#ff4f4f;">Logout 🚪</button></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <header class="page-header">
+      <div class="badge">Moderasi & Management</div>
+      <h1>Semua Pesan 📩</h1>
+      <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
+          <button onclick="loadMessages(false)" class="filter-tab active" id="tabPending">Pending ⏳</button>
+          <button onclick="loadMessages(true)" class="filter-tab" id="tabApproved">Sudah Tayang ✅</button>
+      </div>
+    </header>
+
+    <div id="list" class="admin-grid">
+      <p style="text-align: center; grid-column: 1/-1;">Memuat data... ⏳</p>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+    import { getFirestore, collection, query, where, getDocs, doc, updateDoc, deleteDoc, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAWE2WciUe5JD7SJYScvWyZRxqZO9BebhQ",
+      authDomain: "smansarfess.firebaseapp.com",
+      projectId: "smansarfess",
+      storageBucket: "smansarfess.firebasestorage.app",
+      messagingSenderId: "372522283747",
+      appId: "1:372522283747:web:f92e4ad4a382fc843d0bd6"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const list = document.getElementById("list");
+
+    // Proteksi Halaman Admin
+    if(localStorage.getItem("adminLoggedIn") !== "true") {
+      window.location.href = "admin-login.html";
+    }
+
+    window.loadMessages = async (isApproved) => {
+      // Update UI Tab
+      document.getElementById("tabPending").classList.toggle("active", !isApproved);
+      document.getElementById("tabApproved").classList.toggle("active", isApproved);
+      
+      list.innerHTML = "<p style='text-align: center; grid-column: 1/-1;'>Sabar ya, lagi ambil data... 🌸</p>";
+
+      const q = query(
+          collection(db, "menfess"), 
+          where("approved", "==", isApproved),
+          orderBy("createdAt", "desc")
+      );
+      
+      const snapshot = await getDocs(q);
+      list.innerHTML = "";
+
+      if (snapshot.empty) {
+        list.innerHTML = `<p style='text-align:center; grid-column:1/-1;'>Kosong melompong... 🍃</p>`;
+        return;
+      }
+
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const id = docSnap.id;
+        const card = document.createElement("div");
+        card.className = "card admin-card";
+        card.innerHTML = `
+          <div class="tag">${data.category}</div>
+          <p><strong>Ke:</strong> ${data.recipient}</p>
+          <p class="msg">"${data.message}"</p>
+          <p class="sender">Dari: ${data.sender}</p>
+          <div class="admin-btns">
+            ${!isApproved ? `<button class="approve-btn" onclick="approvePost('${id}')">Approve ✅</button>` : ''}
+            <button class="delete-btn" onclick="deletePost('${id}')">Hapus Permanen 🗑️</button>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    };
+
+    window.approvePost = async (id) => {
+      await updateDoc(doc(db, "menfess", id), { approved: true });
+      loadMessages(false);
+    };
+
+    window.deletePost = async (id) => {
+      if(confirm("Pesan ini akan dihapus selamanya dari database. Lanjutkan?")) {
+        await deleteDoc(doc(db, "menfess", id));
+        // Refresh tab yang sedang aktif
+        const isCurrentlyApproved = document.getElementById("tabApproved").classList.contains("active");
+        loadMessages(isCurrentlyApproved);
+      }
+    };
+
+    window.logout = () => {
+      localStorage.removeItem("adminLoggedIn");
+      window.location.href = "admin-login.html";
+    };
+
+    // Load default: pesan pending
+    loadMessages(false);
+  </script>
+
+  <style>
+    .admin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 30px; }
+    .admin-card { text-align: left; padding: 25px !important; position: relative; border: 1px solid #eee; }
+    .tag { font-size: 10px; font-weight: 800; color: var(--primary); text-transform: uppercase; margin-bottom: 10px; }
+    .msg { font-style: italic; margin: 15px 0; color: #444; border-left: 3px solid var(--secondary); padding-left: 10px; }
+    .sender { font-size: 12px; color: #999; margin-bottom: 20px; }
+    .admin-btns { display: flex; gap: 10px; }
+    .approve-btn, .delete-btn, .filter-tab { 
+      padding: 10px 15px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.3s;
+    }
+    .filter-tab { background: #eee; color: #666; }
+    .filter-tab.active { background: var(--primary); color: white; box-shadow: 0 5px 15px rgba(255,126,185,0.3); }
+    .approve-btn { background: #4ade80; color: white; flex: 2; }
+    .delete-btn { background: #ff4f4f; color: white; flex: 1; }
+    .approve-btn:hover, .delete-btn:hover { filter: brightness(1.1); transform: translateY(-2px); }
+  </style>
+</body>
+</html>

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Feed Menfess — SMANSARFESS 🌸</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="logo">SMANSARFESS 💌</div>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="submit.html">Kirim Pesan</a></li>
+      <li><a class="active" href="feed.html">Feed</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <header class="page-header" style="text-align: center; margin-bottom: 40px;">
+      <div class="badge">✨ Pesan Terkini</div>
+      <h1 style="font-size: 2.5rem; margin-bottom: 10px;">Lagi rame apa ya? 👀</h1>
+      <p>Scroll terus buat liat rahasia dan curhatan warga SMANSA</p>
+    </header>
+
+    <div id="menfess-container" class="feed-grid">
+      <div id="loading" style="text-align: center; grid-column: 1/-1; padding: 50px;">
+        <p style="font-weight: 600; color: var(--primary);">Lagi nyari pesan buat kamu... 🌸</p>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+    import { getFirestore, collection, query, where, orderBy, onSnapshot, doc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAWE2WciUe5JD7SJYScvWyZRxqZO9BebhQ",
+      authDomain: "smansarfess.firebaseapp.com",
+      projectId: "smansarfess",
+      storageBucket: "smansarfess.firebasestorage.app",
+      messagingSenderId: "372522283747",
+      appId: "1:372522283747:web:f92e4ad4a382fc843d0bd6"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const container = document.getElementById("menfess-container");
+
+    function loadApprovedMenfess() {
+      const q = query(
+        collection(db, "menfess"), 
+        where("approved", "==", true), 
+        orderBy("createdAt", "desc")
+      );
+
+      onSnapshot(q, (snapshot) => {
+        container.innerHTML = "";
+        
+        if (snapshot.empty) {
+          container.innerHTML = "<p style='text-align:center; grid-column:1/-1;'>Belum ada pesan yang di-approve. 🌸</p>";
+          return;
+        }
+
+        snapshot.forEach(docSnap => {
+          const data = docSnap.data();
+          const id = docSnap.id;
+          const card = document.createElement("div");
+          
+          card.className = "card feed-card";
+          // Memberikan atribut data-id untuk mempermudah html2canvas mencari elemen
+          card.setAttribute('data-id', id);
+
+          card.innerHTML = `
+            <div class="card-tag">${data.category}</div>
+            <div class="recipient"><span>Untuk:</span> ${data.recipient}</div>
+            <div class="message">"${data.message}"</div>
+            <div class="sender">Dari: ${data.sender}</div>
+            <div class="reactions">
+              <button class="react-btn" onclick="addReact('${id}', 'baper')">💘 <span>${data.baper || 0}</span></button>
+              <button class="react-btn" onclick="addReact('${id}', 'sedih')">😭 <span>${data.sedih || 0}</span></button>
+              <button class="react-btn" onclick="addReact('${id}', 'kepo')">👀 <span>${data.kepo || 0}</span></button>
+              <button class="react-btn" onclick="addReact('${id}', 'panas')">🔥 <span>${data.panas || 0}</span></button>
+            </div>
+            <button class="share-ig-btn" onclick="generateShareImage('${id}')">Share ke IG Story 📸</button>
+          `;
+          container.appendChild(card);
+        });
+      }, (error) => {
+        console.error("Error:", error);
+        container.innerHTML = "<p style='text-align:center; grid-column:1/-1;'>Gagal memuat pesan. Pastikan Index Firestore sudah aktif.</p>";
+      });
+    }
+
+    // Fungsi Reaksi
+    window.addReact = async (id, type) => {
+      const reactedPosts = JSON.parse(localStorage.getItem("reactedPosts") || "{}");
+      if (reactedPosts[id]) {
+        alert("Kamu sudah memberikan reaksi pada pesan ini! ✨");
+        return;
+      }
+      try {
+        const docRef = doc(db, "menfess", id);
+        await updateDoc(docRef, { [type]: increment(1) });
+        reactedPosts[id] = true;
+        localStorage.setItem("reactedPosts", JSON.stringify(reactedPosts));
+      } catch (e) {
+        console.error("Gagal update react", e);
+      }
+    };
+
+    // FUNGSI SHARE IG STORY
+    window.generateShareImage = async (id) => {
+  const card = document.querySelector(`.feed-card[data-id="${id}"]`);
+  if (!card) return;
+
+  const btn = card.querySelector('.share-ig-btn');
+  btn.innerText = "Lagi bikin desain... ✨";
+
+  const canvasWrapper = document.createElement('div');
+  canvasWrapper.style.cssText = `
+    position: fixed; top: 0; left: -9999px; width: 1080px; height: 1920px;
+    background: linear-gradient(135deg, #FFDEE9 0%, #B5FFFC 100%); /* Gradasi Soft Pastel */
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 100px; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif;
+  `;
+
+  const category = card.querySelector('.card-tag').innerText;
+  const recipient = card.querySelector('.recipient').innerText.replace('Untuk:', '').trim();
+  const message = card.querySelector('.message').innerText;
+  const sender = card.querySelector('.sender').innerText;
+
+  canvasWrapper.innerHTML = `
+    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+                background-image: radial-gradient(rgba(255,126,185,0.2) 1.5px, transparent 1.5px); 
+                background-size: 40px 40px; z-index: 0;"></div>
+
+    <div style="position: absolute; top: 5%; left: -10%; width: 500px; height: 500px; background: rgba(122, 252, 255, 0.4); filter: blur(100px); border-radius: 50%;"></div>
+    <div style="position: absolute; bottom: 5%; right: -10%; width: 600px; height: 600px; background: rgba(255, 126, 185, 0.4); filter: blur(120px); border-radius: 50%;"></div>
+
+    <div style="position: relative; z-index: 10; font-size: 60px; font-weight: 900; color: #ff7eb9; margin-bottom: 80px; letter-spacing: -2px;">
+      SMANSARFESS <span style="font-size: 40px;">💌</span>
+    </div>
+    
+    <div style="position: relative; z-index: 10; background: rgba(255, 255, 255, 0.9); width: 85%; padding: 80px; border-radius: 70px; box-shadow: 0 50px 100px rgba(0,0,0,0.15); text-align: center; border: 3px solid white;">
+      <div style="display: inline-block; background: #7afcff; padding: 15px 40px; border-radius: 25px; font-weight: 800; font-size: 32px; margin-bottom: 60px; color: #333; text-transform: uppercase;">
+        ✨ ${category}
+      </div>
+
+      <div style="font-size: 40px; color: #bbb; margin-bottom: 15px; font-weight: 600;">UNTUK:</div>
+      <div style="font-size: 90px; font-weight: 900; color: #333; margin-bottom: 70px; font-family: 'Fredoka'; letter-spacing: -1px;">${recipient}</div>
+      
+      <div style="font-size: 55px; line-height: 1.5; font-style: italic; color: #444; margin-bottom: 80px; font-weight: 400; padding: 0 20px;">
+        "${message}"
+      </div>
+      
+      <div style="font-size: 38px; color: #ff7eb9; border-top: 3px solid #f8f8f8; padding-top: 50px; font-weight: 700;">
+        DARI: ${sender}
+      </div>
+    </div>
+    
+    <div style="position: relative; z-index: 10; margin-top: 100px; font-size: 30px; color: #888; font-weight: 600; letter-spacing: 3px; opacity: 0.6;">
+      WWW.SMANSARFESS.COM
+    </div>
+  `;
+
+  document.body.appendChild(canvasWrapper);
+
+  html2canvas(canvasWrapper, { scale: 2 }).then(canvas => {
+    const image = canvas.toDataURL("image/png");
+    const link = document.createElement('a');
+    link.href = image;
+    link.download = `smansarfess-${recipient}.png`;
+    link.click();
+    document.body.removeChild(canvasWrapper);
+    btn.innerText = "Share ke IG Story 📸";
+  });
+};
+    loadApprovedMenfess();
+  </script>
+
+  <style>
+    .feed-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 25px;
+      margin-top: 20px;
+      padding-bottom: 50px;
+    }
+
+    .feed-card {
+      background: white;
+      border-radius: 25px;
+      padding: 45px 25px 25px 25px !important;
+      position: relative;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(0,0,0,0.05);
+      animation: fadeInUp 0.5s ease forwards;
+    }
+
+    .card-tag {
+      position: absolute;
+      top: 15px;
+      left: 20px;
+      background: var(--secondary);
+      color: #444;
+      padding: 5px 15px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .recipient {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1.3rem;
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+
+    .recipient span { 
+      color: #aaa; font-size: 0.8rem; font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 400; display: block;
+    }
+
+    .message {
+      font-size: 1.05rem; color: #444; font-style: italic;
+      line-height: 1.6; margin-bottom: 20px; flex-grow: 1;
+      white-space: pre-wrap;
+    }
+
+    .sender {
+      font-size: 0.85rem; color: #888; margin-bottom: 15px;
+      padding-top: 10px; border-top: 1px dashed #eee;
+    }
+
+    .reactions {
+      display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;
+    }
+
+    .react-btn {
+      background: #fdfdfd; border: 1px solid #f0f0f0; padding: 8px 14px;
+      border-radius: 15px; cursor: pointer; font-size: 0.9rem;
+      display: flex; align-items: center; gap: 5px; transition: 0.2s;
+    }
+
+    .react-btn:hover { background: #fff0f7; border-color: var(--primary); }
+
+    .share-ig-btn {
+      background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+      color: white; border: none; padding: 12px; border-radius: 15px;
+      font-weight: 700; cursor: pointer; font-size: 0.85rem;
+      transition: 0.3s;
+    }
+
+    .share-ig-btn:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(220, 39, 67, 0.3); }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</body>
+</html>
