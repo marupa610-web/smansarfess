@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login — SMANSARFESS</title>
+  <style>
+    body{
+      margin:0;
+      height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:linear-gradient(135deg,#1a1f3c,#0f1220);
+      font-family:Segoe UI, sans-serif;
+      color:#fff;
+    }
+    .login-box{
+      background:#1b1f38;
+      padding:40px;
+      border-radius:20px;
+      width:320px;
+      box-shadow:0 20px 60px rgba(0,0,0,0.5);
+      text-align:center;
+    }
+    h1{margin-bottom:10px}
+    p{opacity:.7;margin-bottom:25px}
+    input{
+      width:100%;
+      padding:12px;
+      margin-bottom:15px;
+      border:none;
+      border-radius:10px;
+      background:#2a2f55;
+      color:#fff;
+      outline:none;
+    }
+    button{
+      width:100%;
+      padding:12px;
+      border:none;
+      border-radius:999px;
+      background:#ff4fd8;
+      color:#fff;
+      font-weight:bold;
+      cursor:pointer;
+      transition:.2s;
+    }
+    button:hover{transform:scale(1.05)}
+    .error{
+      color:#ff7b7b;
+      margin-top:10px;
+      display:none;
+      font-size:14px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-box">
+    <h1>Admin Login 🔐</h1>
+    <p>SMANSARFESS Dashboard</p>
+
+    <input id="username" type="text" placeholder="Username" />
+    <input id="password" type="password" placeholder="Password" />
+
+    <button onclick="login()">Masuk</button>
+
+    <div id="error" class="error">Username atau password salah</div>
+  </div>
+
+<script>
+// 🔐 GANTI SESUAI YANG KAMU MAU
+const ADMIN_USER = "admin";
+const ADMIN_PASS = "marup123";
+
+function login(){
+  const user = document.getElementById("username").value;
+  const pass = document.getElementById("password").value;
+
+  if(user === ADMIN_USER && pass === ADMIN_PASS){
+    // Simpan status login
+    localStorage.setItem("adminLoggedIn","true");
+
+    // Pindah ke dashboard admin
+    window.location.href = "admin.html";
+  }else{
+    document.getElementById("error").style.display = "block";
+  }
+}
+</script>
+
+</body>
+</html>
