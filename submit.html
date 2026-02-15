@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kirim Pesan Rahasia — SMANSARFESS 💌</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <nav class="navbar">
+    <div class="logo">SMANSARFESS 💌</div>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a class="active" href="submit.html">Kirim Pesan</a></li>
+      <li><a href="feed.html">Feed</a></li>
+    </ul>
+  </nav>
+
+  <header class="page-header">
+    <div class="badge">✨ Ekspresikan Perasaanmu</div>
+    <h1>Mau Kirim Pesan Apa? ✍️</h1>
+    <p>Tenang, rahasiamu aman bersama kami!</p>
+  </header>
+
+  <main class="container">
+    <div class="submit-wrapper">
+      <form class="menfess-form card">
+        
+        <div class="input-group">
+          <label for="recipient">Siapa nih yang beruntung? 🎯</label>
+          <input type="text" id="recipient" placeholder="Contoh: Raka XI-2 / Ibu Kantin" required />
+        </div>
+
+        <div class="input-group">
+          <label for="message">Tumpahkan perasaanmu di sini... ✍️</label>
+          <textarea id="message" rows="6" placeholder="Tulis pesan yang tulus atau sambat yang seru..." required></textarea>
+        </div>
+
+        <div class="input-group">
+          <label for="category">Mood pesan ini gimana? 🌈</label>
+          <select id="category" required>
+            <option value="" disabled selected>Pilih kategori...</option>
+            <option>💗 Crush</option>
+            <option>🤝 Persahabatan</option>
+            <option>😔 Curhat</option>
+            <option>🎒 Opini Sekolah</option>
+            <option>🤪 Random</option>
+          </select>
+        </div>
+
+        <div class="toggle-section">
+          <label class="switch-container">
+            <input type="checkbox" id="anonToggle" checked />
+            <span class="slider"></span>
+          </label>
+          <span class="toggle-text">Kirim sebagai Anonymous 🔒</span>
+        </div>
+
+        <div id="senderField" class="input-group" style="display:none; animation: fadeIn 0.3s ease;">
+          <label for="senderName">Nama Kamu (Kalau mau pamer) 😎</label>
+          <input type="text" id="senderName" placeholder="Tulis namamu..." />
+        </div>
+
+        <button type="submit" class="submit-btn">Kirim Pesan Sekarang ✨</button>
+
+      </form>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+    // Konfigurasi Firebase kamu
+    const firebaseConfig = {
+      apiKey: "AIzaSyAWE2WciUe5JD7SJYScvWyZRxqZO9BebhQ",
+      authDomain: "smansarfess.firebaseapp.com",
+      projectId: "smansarfess",
+      storageBucket: "smansarfess.firebasestorage.app",
+      messagingSenderId: "372522283747",
+      appId: "1:372522283747:web:f92e4ad4a382fc843d0bd6"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const form = document.querySelector(".menfess-form");
+    const anonToggle = document.getElementById("anonToggle");
+    const senderField = document.getElementById("senderField");
+
+    // Efek Show/Hide Nama Pengirim
+    anonToggle.addEventListener("change", () => {
+      senderField.style.display = anonToggle.checked ? "none" : "block";
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const btn = form.querySelector(".submit-btn");
+      
+      // Loading state
+      btn.innerHTML = "Lagi terbang nih... 🚀";
+      btn.disabled = true;
+
+      const recipient = document.getElementById("recipient").value;
+      const message = document.getElementById("message").value;
+      const category = document.getElementById("category").value;
+      const anonymous = anonToggle.checked;
+      const senderName = document.getElementById("senderName").value;
+      const sender = anonymous ? "Anonymous" : (senderName || "Anon");
+
+      try {
+        await addDoc(collection(db, "menfess"), {
+          recipient,
+          message,
+          category,
+          anonymous,
+          sender,
+          approved: false,
+          createdAt: new Date(),
+          baper: 0, sedih: 0, kepo: 0, panas: 0
+        });
+
+        // Efek Berhasil
+        btn.innerHTML = "YEAY! TERKIRIM! 💖";
+        confettiEffect();
+        form.reset();
+        senderField.style.display = "none";
+        
+      } catch (error) {
+        console.error("Error:", error);
+        btn.innerHTML = "Gagal Kirim ❌";
+      } finally {
+        // Reset tombol setelah 4 detik
+        setTimeout(() => { 
+          btn.innerHTML = "Kirim Pesan Sekarang ✨"; 
+          btn.disabled = false; 
+        }, 4000);
+      }
+    });
+
+    function confettiEffect() {
+      const emojis = ['✨', '💖', '💌', '🌸', '🔥', '🌈'];
+      for(let i=0; i<20; i++) {
+        const span = document.createElement('span');
+        span.innerText = emojis[Math.floor(Math.random()*emojis.length)];
+        span.className = 'confetti';
+        span.style.left = Math.random() * 100 + 'vw';
+        span.style.fontSize = (Math.random() * 20 + 20) + 'px';
+        document.body.appendChild(span);
+        // Hapus elemen setelah animasi selesai (3 detik)
+        setTimeout(() => span.remove(), 3000);
+      }
+    }
+  </script>
+</body>
+</html>
